@@ -1,0 +1,158 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+
+  customer      Customer?
+  notifications Notification[]
+  adminSettings AdminSettings?
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  phone     String?
+  company   String?
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sales            Sale[]
+  interactionLogs  InteractionLog[]
+
+  @@map("customers")
+}
+
+model Sale {
+  id         String     @id @default(uuid())
+  customerId String
+  product    String
+  amount     Decimal    @db.Decimal(10, 2)
+  dueDate    DateTime
+  status     SaleStatus @default(PENDING)
+  paidAt     DateTime?
+  notes      String?    @db.Text
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoice         Invoice?
+  interactionLogs InteractionLog[]
+
+  @@map("sales")
+}
+
+enum SaleStatus {
+  PENDING
+  PAID
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  saleId        String   @unique
+  invoiceNumber String   @unique
+  pdfPath       String?
+  sentAt        DateTime?
+  generatedAt   DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model InteractionLog {
+  id         String          @id @default(uuid())
+  customerId String
+  saleId     String
+  channel    Channel
+  message    String          @db.Text
+  status     InteractionStatus @default(SENT)
+  sentAt     DateTime        @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sale     Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("interaction_logs")
+}
+
+enum Channel {
+  EMAIL
+  WHATSAPP
+}
+
+enum InteractionStatus {
+  SENT
+  FAILED
+}
+
+model ReminderSettings {
+  id         String   @id @default(uuid())
+  daysBefore Json?     // Array of ints e.g. [1, 3, 7]
+  channels   Json?     // Array of strings e.g. ["email", "whatsapp"]
+  template   String?   @db.Text
+  updatedAt  DateTime @updatedAt
+
+  @@map("reminder_settings")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType @default(INFO)
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ALERT
+  INFO
+  SUCCESS
+}
+
+model AdminSettings {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  profileName  String?
+  phone        String?
+  company      String?
+  bio          String?  @db.Text
+  emailAlerts  Boolean  @default(true)
+  smsAlerts    Boolean  @default(false)
+  browserNotif Boolean  @default(true)
+  language     String   @default("en")
+  timezone     String   @default("Asia/Kolkata")
+  currency     String   @default("INR")
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_settings")
+}
