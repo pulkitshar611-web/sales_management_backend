@@ -18,9 +18,38 @@ const notificationRoutes = require('./routes/notifications.routes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// ── CORS ────────────────────────────────────────────────────
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:5178',
+    'http://localhost:5179',
+    'http://localhost:5180',
+    'http://localhost:5181',
+    'http://localhost:5182',
+    process.env.FRONTEND_URL,           // from .env
+].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        // Allow any Railway / Vercel / Netlify hosted origin
+        if (origin.includes('railway.app') || origin.includes('vercel.app') || origin.includes('netlify.app')) {
+            return callback(null, true);
+        }
+        callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
+
 
 // Routes
 app.use('/api/auth', authRoutes);
