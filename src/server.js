@@ -30,6 +30,7 @@ const allowedOrigins = [
     'http://localhost:5180',
     'http://localhost:5181',
     'http://localhost:5182',
+    'https://sales-manager.kiaantechnology.com',
     process.env.FRONTEND_URL,           // from .env
 ].filter(Boolean);
 
